@@ -1,0 +1,320 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploy a VPC, IGW, Subnets across 2 AZ's, and build security groups",
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "CF Lab VPC"
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "CF Lab IGW"
+          }
+        ]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": "10.0.1.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Subnet 1"
+          }
+        ]
+      }
+    },
+    "PublicSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": "10.0.2.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "1",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Subnet 2"
+          }
+        ]
+      }
+    },
+    "PrivateSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": "10.0.3.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Subnet 1"
+          }
+        ]
+      }
+    },
+    "PrivateSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": "10.0.4.0/24",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "1",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Subnet 2"
+          }
+        ]
+      }
+    },
+    "LoadBalancerSG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+        ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+    "WebServerSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+        ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+    "NATServerSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+        ],
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Route Table"
+          }
+        ]
+      }
+    },
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnet1"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "PublicSubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnet2"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    }       
+  },
+
+
+    "Outputs": {
+
+
+
+      "VPC": {
+        "Description": "VPC",
+        "Value": {
+          "Ref": "VPC"
+        },
+        "Export": {
+          "Name":  "Template1-VPCID" 
+        }    
+      },
+      "PublicSubnet1": {
+        "Description": "PubSub1_ID",
+        "Value": {
+          "Ref": "PublicSubnet1"
+        },
+        "Export": {
+          "Name": "PUB-SUB1-ID"
+        }      
+      },
+      "PublicSubnet2": {
+        "Description": "PubSub2_ID",
+        "Value": {
+          "Ref": "PublicSubnet2"
+        },
+        "Export": {
+          "Name": "PUB-SUB2-ID"
+        }    
+      },
+      "PrivateSubnet1": {
+        "Description": "PrivateSub1_ID",
+        "Value": {
+          "Ref": "PrivateSubnet1"
+        },
+        "Export": {
+          "Name": "PRIV-SUB1-ID"
+        }      
+      },
+      "PrivateSubnet2": {
+        "Description": "PrivateSub2_ID",
+        "Value": {
+          "Ref": "PrivateSubnet2"
+        },
+        "Export": {
+          "Name": "PRIV-SUB2-ID"
+        }    
+      },
+      "AvailabilityZone1": {
+        "Description": "Availability Zone 1",
+        "Value": {
+          "Fn::GetAtt": [
+            "PublicSubnet1",          
+            "AvailabilityZone"
+          ]
+        }
+      },
+      "AvailabilityZone2": {
+        "Description": "Availability Zone 2",
+        "Value": {
+          "Fn::GetAtt": [
+            "PublicSubnet2",          
+            "AvailabilityZone"
+          ]
+        }
+      },
+      "StackName": {
+        "Description": "Current Stack Name",
+        "Value": {
+          "Ref": "AWS::StackName"
+          },
+        "Export": {
+          "Name": "Template-1-StackName"
+        }
+      },
+      "LoadBalancerSGID": {
+        "Description": "LoadBalancerSG ID",
+        "Value": {
+          "Ref": "LoadBalancerSG"
+          },
+        "Export": {
+          "Name": "LB-SG-ID"
+        }    
+      },
+      "WebServerSGID": {
+        "Description": "WebServer SG ID",
+        "Value": {
+          "Ref": "WebServerSecurityGroup"
+          },
+        "Export": {
+          "Name": "WebServerSG-ID"
+        }    
+      },
+      "NATServerSGID": {
+        "Description": "NATServer SG ID",
+        "Value": {
+          "Ref": "NATServerSecurityGroup"
+          },
+        "Export": {
+          "Name": "NATServerSG-ID"
+        }    
+      }
+    }
+}

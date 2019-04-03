@@ -1,0 +1,117 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template2-Deploy_ELB_EC2",
+  "Metadata": {
+
+  },
+  "Parameters": {
+  
+  },
+  "Mappings": {
+
+  },
+  "Conditions": {
+
+  },
+
+
+
+
+
+  "Resources": {
+
+    "ELB" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Name" : "Internet-ELB",
+        "Scheme" : "internet-facing",
+        "Subnets": [
+          {"Fn::ImportValue": "PUB-SUB1-ID"}, 
+          {"Fn::ImportValue" : "PUB-SUB2-ID" }
+        ],
+        
+        "SecurityGroups" : [ { "Fn::ImportValue" : "LB-SG-ID" } ]
+        }     
+    },
+      
+    "ELBListener" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties" : {
+        "DefaultActions" : [{
+          "Type" : "forward",
+          "TargetGroupArn" : { "Ref" : "ELBTargetGroup" }
+
+        }],
+        "LoadBalancerArn" : { "Ref" : "ELB" },
+        "Port" : "80",
+        "Protocol" : "HTTP"        
+      }
+    },
+
+    "ELBTargetGroup" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties" : {
+        "HealthCheckIntervalSeconds" : 30,
+        "HealthCheckTimeoutSeconds" : 5,
+        "HealthyThresholdCount" : 3,
+        "HealthCheckPath" : "/",
+        "Port" : 80,
+        "Protocol" : "HTTP",
+        "UnhealthyThresholdCount" : 2,
+        "VpcId" : {"Fn::ImportValue" : "Template1-VPCID" },
+        "Targets": [
+          { "Id": {"Ref" : "WSAZ1"}, "Port": 80 },
+          { "Id": {"Ref" : "WSAZ2"}, "Port": 80 }
+        ],
+        "Name" : "ELBTargets"
+      }
+    },
+    
+    "WSAZ1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+          "KeyName": "Project-1",
+          
+          "ImageId":  "ami-0bfb66393148daa49",
+          "InstanceType": "t2.micro",
+          "Monitoring": "false",
+          "SecurityGroupIds" : [ { "Fn::ImportValue" : "WebServerSG-ID" } ],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "WebServer-AZ1"
+              }
+          ],
+          "SubnetId" : { "Fn::ImportValue" : "PRIV-SUB1-ID" }
+          
+      }
+    },
+
+  
+    "WSAZ2": {
+        "Type": "AWS::EC2::Instance",
+        "Properties": {
+            "KeyName": "Project-1",
+            
+            "ImageId":  "ami-0bfb66393148daa49" ,
+            "InstanceType": "t2.micro",
+            "Monitoring": "false",
+            "SecurityGroupIds" : [ { "Fn::ImportValue" : "WebServerSG-ID" } ],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "WebServer-AZ2"
+                }
+            ],
+            "SubnetId" : { "Fn::ImportValue" : "PRIV-SUB2-ID" }          
+        }
+    }
+
+  },
+  "Outputs" : {
+    "DNSNAMEURL" : {
+      "Value" : { "Fn::Join" : [ "", ["http://", { "Fn::GetAtt" : ["ELB", "DNSName"] }]]},
+      "Description" : "Elastic Load Balancer DNS Name/URL"
+    }
+  }
+}

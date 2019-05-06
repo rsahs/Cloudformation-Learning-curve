@@ -20,22 +20,15 @@
 
     "Resources": {
 
-        "NAT_EIP" : {
-              "Type": "AWS::EC2::EIP",
-              "Properties": {
-                "Domain": { "Fn::ImportValue" : { "Fn::Join" : ["-", [{"Fn::ImportValue" : "Template-1-StackName"},"VPCID" ] ] } },
-                "InstanceId": { "Ref" : "NAT_INSTANCE" }
-              }
-        },
-        
+               
         "NAT_INSTANCE": {
             "Type": "AWS::EC2::Instance",
             "DisableApiTermination": "-",
             "Properties": {
                 "KeyName": "",
-                "ImageId": { - },
+                "ImageId":  "ami-4c9e4b24" ,
                 "InstanceType": "t2.micro",
-                "Monitoring": "true|false",
+                "Monitoring": "false",
                 "SecurityGroupIds" : [ { "Fn::ImportValue" : "NATServerSG-ID" } ],
                 "Tags": [
                     {

@@ -5,7 +5,11 @@
 
   },
   "Parameters": {
-  
+    "MainRouteTableID" : {
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "100"
+    }
   },
   "Mappings": {
 
@@ -19,6 +23,15 @@
 
 
   "Resources": {
+
+    "NATRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock" : "0.0.0.0/0",       
+        "InstanceId" : {"Fn::ImportValue": "NATID"},        
+        "RouteTableId" : {"Ref" :  "MainRouteTableID"}
+      }
+    },
 
     "ELB" : {
       "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
@@ -72,7 +85,7 @@
       "Properties": {
           "KeyName": "Project-1",
           
-          "ImageId":  "ami-0bfb66393148daa49",
+          "ImageId":  "ami-0a153cb902035152b",
           "InstanceType": "t2.micro",
           "Monitoring": "false",
           "SecurityGroupIds" : [ { "Fn::ImportValue" : "WebServerSG-ID" } ],
@@ -93,7 +106,7 @@
         "Properties": {
             "KeyName": "Project-1",
             
-            "ImageId":  "ami-0bfb66393148daa49" ,
+            "ImageId":  "ami-0a153cb902035152b" ,
             "InstanceType": "t2.micro",
             "Monitoring": "false",
             "SecurityGroupIds" : [ { "Fn::ImportValue" : "WebServerSG-ID" } ],
@@ -110,7 +123,7 @@
   },
   "Outputs" : {
     "DNSNAMEURL" : {
-      "Value" : { "Fn::Join" : [ "", ["http://", { "Fn::GetAtt" : ["ELB", "DNSName"] }]]},
+      "Value" : { "Fn::GetAtt" : ["ELB", "DNSName"] },
       "Description" : "Elastic Load Balancer DNS Name/URL"
     }
   }

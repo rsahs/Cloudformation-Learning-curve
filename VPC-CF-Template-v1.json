@@ -10,7 +10,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "CF Lab VPC"
+            "Value": "CF Project VPC"
           }
         ]
       }
@@ -43,6 +43,7 @@
         "VpcId": {
           "Ref": "VPC"
         },
+        "MapPublicIpOnLaunch" : "true",
         "CidrBlock": "10.0.1.0/24",
         "AvailabilityZone": {
           "Fn::Select": [
@@ -66,6 +67,7 @@
         "VpcId": {
           "Ref": "VPC"
         },
+        "MapPublicIpOnLaunch" : "true",
         "CidrBlock": "10.0.2.0/24",
         "AvailabilityZone": {
           "Fn::Select": [
@@ -146,7 +148,8 @@
         "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
-          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "10.0.0.0/16"},
+          {"IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "10.0.0.0/16"}
         ],
         "VpcId" : { "Ref" : "VPC" }
       }
@@ -156,12 +159,24 @@
       "Properties" : {
         "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
         "SecurityGroupIngress" : [
-          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
-          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+          {"IpProtocol" : "-1", "CidrIp" : "10.0.0.0/16"}          
         ],
         "VpcId" : { "Ref" : "VPC" }
       }
     },
+    "BastionSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access via port 22 locked down to the School + Home",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "198.150.11.0/24" },
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "97.83.252.0/24" },
+          {"IpProtocol" : "icmp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "10.0.0.0/16"}          
+        ],      
+        "VpcId" : { "Ref" : "VPC" }
+      }
+    },
+
     "PublicRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -209,7 +224,56 @@
           "Ref": "PublicRouteTable"
         }
       }
-    }       
+    },
+
+    "NATInstance": {
+      "Type": "AWS::EC2::Instance",      
+      "Properties": {
+          "KeyName": "Project-1",
+          "ImageId":  "ami-4c9e4b24" ,
+          "InstanceType": "t2.micro",
+          "Monitoring": "false",
+          "SourceDestCheck" : "false",
+          "SecurityGroupIds" : [ { "Ref" : "NATServerSecurityGroup" } ],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "NAT-Instance"
+              }
+          ],
+          "SubnetId" : { "Ref" : "PublicSubnet1" }
+      }
+    },
+
+    "BastionBox": {
+      "Type": "AWS::EC2::Instance",      
+      "Properties": {
+          "KeyName": "Project-1",
+          "ImageId":  "ami-0080e4c5bc078760e",
+
+          "InstanceType": "t2.micro",
+          "Monitoring": "false",
+          "SecurityGroupIds" : [ { "Ref" : "BastionSecurityGroup" } ],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "Bastion-Jump-Box"
+              }
+          ],
+          "SubnetId" : { "Ref" : "PublicSubnet2" }
+      }
+    }
+    
+    
+
+
+
+
+
+
+
+
+
   },
 
 
@@ -225,6 +289,13 @@
         "Export": {
           "Name":  "Template1-VPCID" 
         }    
+      },
+      "NAT" : {
+        "Description": "NAT instance ID",
+        "Value": { "Ref": "NATInstance"},
+        "Export": {
+          "Name": "NATID"
+        }
       },
       "PublicSubnet1": {
         "Description": "PubSub1_ID",

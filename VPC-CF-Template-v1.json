@@ -134,7 +134,7 @@
     "LoadBalancerSG" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "GroupDescription" : "Enable HTTP + SSH access via port 80 locked down to the load balancer",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
           {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
@@ -145,7 +145,7 @@
     "WebServerSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "GroupDescription" : "Enable HTTP + SSH + ICMP access via ports 80/22/all locked down to the VPC network for ssh/icmp",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
           {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "10.0.0.0/16"},
@@ -157,7 +157,7 @@
     "NATServerSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Enable HTTP access via port 80 locked down to the load balancer + SSH access",
+        "GroupDescription" : "Enable all traffic via all ports locked down to the VPC",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "-1", "CidrIp" : "10.0.0.0/16"}          
         ],
@@ -167,11 +167,11 @@
     "BastionSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Enable SSH access via port 22 locked down to the School + Home",
+        "GroupDescription" : "Enable SSH + ICMP access via port 22 locked down to the School + Home / VPC",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "198.150.11.0/24" },
           {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "97.83.252.0/24" },
-          {"IpProtocol" : "icmp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "10.0.0.0/16"}          
+          {"IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "10.0.0.0/16"}          
         ],      
         "VpcId" : { "Ref" : "VPC" }
       }
